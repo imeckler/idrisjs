@@ -1,4 +1,4 @@
-module Common
+module Js.Common
 
 syntax [s] ".[" [i] "]" = prim__strIndex s i
 

@@ -1,17 +1,15 @@
 module Js.MaybeDef
 
 import Js.Types
-import qualified Js.Bool
-
 
 abstract
-MaybeDef : a -> Type
+MaybeDef : Type -> Type
 MaybeDef a = a
 
 public
 toMaybe : MaybeDef a -> Maybe a
-toMaybe x =
+toMaybe {a} x =
   let isUndefined = unsafePerformIO (
-    mkForeign (FFun "isUndefined" [FPtr] (FAny (Js Bool))) x)
+    mkForeign (FFun "isUndefined" [FAny a] (FAny (Js Bool))) x)
   in
-  if jsEq Js.Bool.true x then None else Some x
+  if jsEq Js.Bool.true isUndefined then Nothing else Just x

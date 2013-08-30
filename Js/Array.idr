@@ -1,25 +1,21 @@
-module Main
+module Js.Array
+import Js.MaybeDef
 
 Array : Type -> Type
 Array _ = Ptr
 
-indexHonest : Array a -> Int -> IO a
--- Figuer out why this isn't working
--- indexHonest {a} arr i = mkForeign (FFun "[]" [FPtr, FInt] (FAny a))
--- indexHonest {a} arr i = believe_me (mkForeign (FFun ".[]" [FPtr, FInt] (FAny a)))
+
+indexHonest : Array a -> Int -> IO (MaybeDef a)
 indexHonest {a} arr i =
-    mkForeign (FFun "indexObj" [FPtr, FInt] (FAny a)) arr i
+    mkForeign (FFun "indexObj" [FPtr, FInt] (FAny (MaybeDef a))) arr i
 
--- (!) : Array a -> Int -> a
--- (!) arr i = unsafePerformIO (mkForeign :
+infixl 1 !
 
-newArray : () -> IO (Array a)
-newArray {a} () = believe_me (mkForeign (FFun "newArray" [FUnit] (FAny (Array a))))
+(!) : Array a -> Int -> IO (MaybeDef a)
+(!) = indexHonest
 
-main : IO ()
-main = do
-  arr <- newArray {a = Int} ()
-  printAny arr
-  nope <- indexHonest arr 0
-  print nope
+newArray : IO (Array a)
+newArray {a} = mkForeign (FFun "newArray" [FUnit] (FAny (Array a))) ()
 
+push : a -> Array a -> IO ()
+push {a} x arr = mkForeign (FFun ".push" [FAny (Array a), FAny a] FUnit) arr x
