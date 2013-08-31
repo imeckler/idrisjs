@@ -1,7 +1,6 @@
 module Js.Types
 
 -- abstract
-public
 data Js a
 
 public

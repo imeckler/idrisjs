@@ -1,7 +1,7 @@
 module Js.Bool
 
-import Js.Unsafe
-import Js.Types
+import Unsafe
+import Types
 
 true : Js Bool
 true = evalUnsafer "true"
