@@ -1,7 +1,7 @@
 module Js.MaybeDef
 
-import Types
-import Bool
+import Js.Types
+import Js.Bool
 
 abstract
 MaybeDef : Type -> Type

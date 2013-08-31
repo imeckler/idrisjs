@@ -1,6 +1,6 @@
 module Js.Obj
 
-import Array
+import Js.Array
 
 infixr 1 ~>
 
@@ -27,9 +27,9 @@ using (xs : List a)
     Here  : Elem x (x :: xs)
     There : Elem x xs -> Elem x (y :: xs)
 
-
 class Has a (x : a) (xs : List a) where
   isElem : Elem x xs
+
 
 instance Has a x (x :: xs) where
   isElem = Here
@@ -76,16 +76,14 @@ writeOnly name t = (name, WriteOnly (toFTy t))
 prop : String -> FTy -> Property
 prop name t = (name, ReadWrite t)
 
--- Small test
 jQuery : Type
 jQuery =
   Object [ readOnly "id" FString
          , writeOnly "foo" FInt
-         , method "children" (FUnit ~> jQuery)
+         , method "children" (FUnit ~> Array jQuery)
          ]
 
 s : jQuery
-
 -- (^.) : (IsElem (name, ty) ps) => Object ps -> fromPropType ty
 
 -- Add either type classes or list to props so that 
@@ -99,4 +97,6 @@ get : (name : String) -> Object props -> Elem (name, ReadOnly t) props -> IO (in
 get {t} name obj elem = mkForeign (FFun ("." ++ name) [FPtr] t) (believe_me obj)
 
 syntax [o] "#" [p] = get p o isElem
-syntax [o] "#" [p] "<-" [x] = set p o isElem x
+syntax [o] "#" [p] ":=" [x] = set p o isElem x
+
+

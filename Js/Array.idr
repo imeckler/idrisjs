@@ -1,11 +1,11 @@
 module Js.Array
-import MaybeDef
+import Js.MaybeDef
 
 Array : Type -> Type
 Array _ = Ptr
 
 
-indexHonest : Array a -> Int -> IO (MaybeDef.MaybeDef a)
+indexHonest : Array a -> Int -> IO (MaybeDef a)
 indexHonest {a} arr i =
     mkForeign (FFun "indexObj" [FPtr, FInt] (FAny (MaybeDef a))) arr i
 
