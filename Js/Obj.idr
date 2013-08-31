@@ -12,7 +12,6 @@ data PropType : Type where
   ReadWrite : FTy -> PropType
   Method    : TwoOrMore FTy -> PropType
 
-
 toFFIArgs : TwoOrMore a -> (List a, a)
 toFFIArgs (Two a b)   = ([a], b)
 toFFIArgs ((::) x xs) =
@@ -21,17 +20,22 @@ toFFIArgs ((::) x xs) =
 Property : Type
 Property = (String, PropType)
 
-mkForeign : PropType -> Type
-mkForeign 
-
-reifyProperty : ((name, propTy) : Property) -> Foreign (mkForeign propTy)
-
 data Object : List Property -> Type
 
 using (xs : List a)
   data Elem : a -> List a -> Type where
     Here  : Elem x (x :: xs)
     There : Elem x xs -> Elem x (y :: xs)
+
+
+class Has a (x : a) (xs : List a) where
+  isElem : Elem x xs
+
+instance Has a x (x :: xs) where
+  isElem = Here
+
+instance Has a x xs => Has a x (y :: xs) where
+  isElem = There isElem
 
 class ToFTy (t : Type) where
   toFTy : t -> FTy
@@ -60,7 +64,7 @@ instance MethType Type FTy where
 instance MethType FTy (TwoOrMore FTy) where
   (~>) t ts = t :: ts
 
-method : String -> TwoOrMore FTy -> Property
+method : String -> |(funTy : TwoOrMore FTy) -> Property
 method name funTy = (name, Method funTy)
 
 readOnly : (ToFTy t) => String -> t -> Property
@@ -72,25 +76,30 @@ writeOnly name t = (name, WriteOnly (toFTy t))
 prop : String -> FTy -> Property
 prop name t = (name, ReadWrite t)
 
+rec : Type -> Type
+rec _ = Ptr
+
 jQuery : Type
 jQuery =
-  Object [ method "children" (FUnit ~> Array jQuery)
-         , readOnly "id" FString
+  Object [ readOnly "id" FString
+         , writeOnly "foo" FInt
+         , method "children" (FUnit ~> rec jQuery)
          ]
 
-(^.) : (IsElem (name, ty) ps) => Object ps -> fromPropType ty
+s : jQuery
 
-class HasProp (p : Property) (t : Type) where
-  meth :
+-- (^.) : (IsElem (name, ty) ps) => Object ps -> fromPropType ty
 
-{--
-(+>) : Object props -> (p : Property) -> Object (p :: props)
+-- Add either type classes or list to props so that 
+-- this can be WriteOnly or ReadWrite
+-- set : Has Property (name, WriteOnly t) ps => (name : String) -> Object ps -> interpFTy t -> IO ()
 
-jQuery = obj
-       +> method "length" (FUnit ~> FInt)
-       +> readOnlyProp "id" FString
-       +> readWriteProp "data" 
+set : (name : String) -> Object props -> Elem (name, WriteOnly t) props -> interpFTy t -> IO ()
+set {t} name obj elem x = mkForeign (FFun ("." ++ name ++ "=") [FPtr, t] FUnit) (believe_me obj) x
 
-       --}
+get : (name : String) -> Object props -> Elem (name, ReadOnly t) props -> IO (interpFTy t)
+get {t} name obj elem = mkForeign (FFun ("." ++ name) [FPtr] t) (believe_me obj)
 
+syntax [o] "#" [p] = get p o isElem
+syntax [o] "#" [p] "<-" [x] = set p o isElem x
 
