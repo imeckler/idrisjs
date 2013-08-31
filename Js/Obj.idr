@@ -79,7 +79,7 @@ jQuery : Type
 jQuery =
   Object [ readOnly "id" FString
          , writeOnly "foo" FInt
-         , method "children" (FUnit ~> Array jQuery)
+         , method "children" (FUnit ~> jQuery)
          ]
 
 s : jQuery
