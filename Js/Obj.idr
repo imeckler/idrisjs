@@ -76,14 +76,12 @@ writeOnly name t = (name, WriteOnly (toFTy t))
 prop : String -> FTy -> Property
 prop name t = (name, ReadWrite t)
 
-rec : Type -> Type
-rec _ = Ptr
-
+-- Small test
 jQuery : Type
 jQuery =
   Object [ readOnly "id" FString
          , writeOnly "foo" FInt
-         , method "children" (FUnit ~> rec jQuery)
+         , method "children" (FUnit ~> jQuery)
          ]
 
 s : jQuery
@@ -102,4 +100,3 @@ get {t} name obj elem = mkForeign (FFun ("." ++ name) [FPtr] t) (believe_me obj)
 
 syntax [o] "#" [p] = get p o isElem
 syntax [o] "#" [p] "<-" [x] = set p o isElem x
-
