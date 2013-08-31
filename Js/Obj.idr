@@ -83,7 +83,6 @@ jQuery =
          ]
 
 s : jQuery
--- (^.) : (IsElem (name, ty) ps) => Object ps -> fromPropType ty
 
 -- Add either type classes or list to props so that 
 -- this can be WriteOnly or ReadWrite
@@ -100,4 +99,9 @@ get' {t} {name} obj = mkForeign (FFun ("." ++ name) [FPtr] t) (believe_me obj)
 
 syntax [o] "#" [p] = get' {name = p} o
 syntax [o] "#" [p] ":=" [x] = set p o isElem x
+
+-- Causes type checker to stack overflow
+x : IO Int
+x = s # "foo"
+-- (^.) : (IsElem (name, ty) ps) => Object ps -> fromPropType ty
 
