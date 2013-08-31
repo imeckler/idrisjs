@@ -30,7 +30,6 @@ using (xs : List a)
 class Has a (x : a) (xs : List a) where
   isElem : Elem x xs
 
-
 instance Has a x (x :: xs) where
   isElem = Here
 
@@ -96,7 +95,9 @@ set {t} name obj elem x = mkForeign (FFun ("." ++ name ++ "=") [FPtr, t] FUnit) 
 get : (name : String) -> Object props -> Elem (name, ReadOnly t) props -> IO (interpFTy t)
 get {t} name obj elem = mkForeign (FFun ("." ++ name) [FPtr] t) (believe_me obj)
 
-syntax [o] "#" [p] = get p o isElem
-syntax [o] "#" [p] ":=" [x] = set p o isElem x
+get' : Has Property (name, ReadOnly t) props => Object props -> IO (interpFTy t)
+get' {t} {name} obj = mkForeign (FFun ("." ++ name) [FPtr] t) (believe_me obj)
 
+syntax [o] "#" [p] = get' {name = p} o
+syntax [o] "#" [p] ":=" [x] = set p o isElem x
 
