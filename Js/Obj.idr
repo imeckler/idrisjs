@@ -60,6 +60,9 @@ instance MethType FTy Type where
 instance MethType Type FTy where
   (~>) t ft = Two (FAny t) ft
 
+instance MethType FTy FTy where
+  (~>) ft1 ft2 = Two ft1 ft2
+
 instance MethType FTy (TwoOrMore FTy) where
   (~>) t ts = t :: ts
 
@@ -75,33 +78,33 @@ writeOnly name t = (name, WriteOnly (toFTy t))
 prop : String -> FTy -> Property
 prop name t = (name, ReadWrite t)
 
-jQuery : Type
-jQuery =
-  Object [ readOnly "id" FString
-         , writeOnly "foo" FInt
-         , method "children" (FUnit ~> jQuery)
-         ]
 
-s : jQuery
+class Obj a where
+  properties : List Property
+
+data JQuery : Type
+instance Obj JQuery where
+  properties = [ readOnly "id" FString
+               , writeOnly "foo" FInt
+               , method "children" (FUnit ~> JQuery) -- jQuery)
+               ]
+
+s : JQuery
 
 -- Add either type classes or list to props so that 
 -- this can be WriteOnly or ReadWrite
 -- set : Has Property (name, WriteOnly t) ps => (name : String) -> Object ps -> interpFTy t -> IO ()
 
-set : (name : String) -> Object props -> Elem (name, WriteOnly t) props -> interpFTy t -> IO ()
-set {t} name obj elem x = mkForeign (FFun ("." ++ name ++ "=") [FPtr, t] FUnit) (believe_me obj) x
+empty : Obj a => IO a
+empty {a} = mkForeign (FFun ("(function(){return {})") [FUnit] (FAny a)) ()
 
-get : (name : String) -> Object props -> Elem (name, ReadOnly t) props -> IO (interpFTy t)
-get {t} name obj elem = mkForeign (FFun ("." ++ name) [FPtr] t) (believe_me obj)
+get : (Obj a, Has Property (name, ReadOnly t) properties) => a -> IO (interpFTy t)
+get {t} {name} obj = mkForeign (FFun ("." ++ name) [FPtr] t) (believe_me obj)
 
-get' : Has Property (name, ReadOnly t) props => Object props -> IO (interpFTy t)
-get' {t} {name} obj = mkForeign (FFun ("." ++ name) [FPtr] t) (believe_me obj)
+set : (Obj a, Has Property (name, WriteOnly t) properties) => a -> interpFTy t -> IO ()
+set {t} {name} obj x = mkForeign (FFun ("." ++ name ++ "=") [FPtr, t] FUnit) (believe_me obj) x
 
-syntax [o] "#" [p] = get' {name = p} o
-syntax [o] "#" [p] ":=" [x] = set p o isElem x
-
--- Causes type checker to stack overflow
-x : IO Int
-x = s # "foo"
--- (^.) : (IsElem (name, ty) ps) => Object ps -> fromPropType ty
+-- syntax [o] "#" [p] = get' {name = p} o
+syntax [o] "#" [p] = get {name = p} o
+syntax [o] "#" [p] ":=" [x] = set {name = p} o x
 
