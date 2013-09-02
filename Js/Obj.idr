@@ -104,6 +104,30 @@ get {t} {name} obj = mkForeign (FFun ("." ++ name) [FPtr] t) (believe_me obj)
 set : (Obj a, Has Property (name, WriteOnly t) properties) => a -> interpFTy t -> IO ()
 set {t} {name} obj x = mkForeign (FFun ("." ++ name ++ "=") [FPtr, t] FUnit) (believe_me obj) x
 
+methType : TwoOrMore FTy -> Type
+methType ts = uncurry ForeignTy (toFFIArgs ts)
+
+morph : List Type -> Type -> Type
+morph args ret = foldr (\t, ft => t -> ft) ret args
+
+-- funCallLoop : (ts : List Type) -> (ts' : List Type) -> (morph 
+
+funCall : (ts : List Type) -> (acc : (List (t : Type ** t))) -> (morph ts (List (t : Type ** t)))
+funCall [] acc = reverse acc
+funCall (t::ts) acc = \x : t => funCall ts ((t ** x) :: acc)
+
+:
+
+-- curriedForeign : (name : String) -> (args : List FTy) -> (ret : FTy) -> morph (map interpFTy args) (IO (interpFTy ret))
+-- curriedForeign name args ret = (\args -> 
+
+-- methCall : (Obj a, Has Property (name, Method ts) properties) => a -> methType ts
+-- methCall {a} {ts} {name} =
+--   let (args, ret) = toFFIArgs ts in curriedForeign . believe_me $ mkForeign (FFun ("." ++ name) (FAny a :: args) ret)
+
+--methCall {ts} {name} obj = mkForeign (FFun ("." ++ name) (FPtr :: args) ret) (believe_me obj) where
+--  (args, ret) = toFFIArgs ts
+
 -- syntax [o] "#" [p] = get' {name = p} o
 syntax [o] "#" [p] = get {name = p} o
 syntax [o] "#" [p] ":=" [x] = set {name = p} o x
