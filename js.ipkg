@@ -1,0 +1,3 @@
+package js
+
+modules = Js.Obj, Js.Array, Js.MaybeDef, Js.Bool, Js.Types, Js.Unsafe
