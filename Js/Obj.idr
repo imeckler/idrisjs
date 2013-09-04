@@ -1,20 +1,24 @@
 module Js.Obj
 
 import Js.Array
+import Js.Types
+import Language.Reflection
+
+data Ty = F FTy | J JsTy | T Type
 
 infixr 1 ~>
 
 data TwoOrMore a = Two a a | (::) a (TwoOrMore a)
 
 data PropType : Type where
-  ReadOnly  : FTy -> PropType
-  WriteOnly : FTy -> PropType
-  ReadWrite : FTy -> PropType
-  Method    : TwoOrMore FTy -> PropType
+  ReadOnly  : Ty -> PropType
+  WriteOnly : Ty -> PropType
+  ReadWrite : Ty -> PropType
+  Method    : TwoOrMore Ty -> PropType
 
 toFFIArgs : TwoOrMore a -> (List a, a)
 toFFIArgs (Two a b)   = ([a], b)
-toFFIArgs ((::) x xs) =
+toFFIArgs (x :: xs) =
   let (args, ret) = toFFIArgs xs in (x :: args, ret)
 
 Property : Type
@@ -27,23 +31,17 @@ using (xs : List a)
     Here  : Elem x (x :: xs)
     There : Elem x xs -> Elem x (y :: xs)
 
-class Has a (x : a) (xs : List a) where
-  isElem : Elem x xs
+class ToTy (t : Type) where
+  toTy : t -> Ty
 
-instance Has a x (x :: xs) where
-  isElem = Here
+instance ToTy FTy where
+  toTy = F
 
-instance Has a x xs => Has a x (y :: xs) where
-  isElem = There isElem
-
-class ToFTy (t : Type) where
-  toFTy : t -> FTy
-
-instance ToFTy FTy where
-  toFTy t = t
-
-instance ToFTy Type where
-  toFTy t = FAny t
+instance ToTy Type where
+  toTy = T
+  
+instance ToTy JsTy where
+  toTy = J
 
 class MethType (t : Type) (s : Type) where
   (~>) : t -> s -> TwoOrMore FTy
@@ -66,13 +64,13 @@ instance MethType FTy FTy where
 instance MethType FTy (TwoOrMore FTy) where
   (~>) t ts = t :: ts
 
-method : String -> |(funTy : TwoOrMore FTy) -> Property
+method : String -> (funTy : TwoOrMore Ty) -> Property
 method name funTy = (name, Method funTy)
 
-readOnly : (ToFTy t) => String -> t -> Property
+readOnly : (ToTy t) => String -> t -> Property
 readOnly name t = (name, ReadOnly (toFTy t))
 
-writeOnly : (ToFTy t) => String -> t -> Property
+writeOnly : (ToTy t) => String -> t -> Property
 writeOnly name t = (name, WriteOnly (toFTy t))
 
 prop : String -> FTy -> Property
@@ -95,9 +93,22 @@ s : JQuery
 -- this can be WriteOnly or ReadWrite
 -- set : Has Property (name, WriteOnly t) ps => (name : String) -> Object ps -> interpFTy t -> IO ()
 
+findElem : Nat -> List (TTName, Binder TT) -> TT -> Tactic
+findElem Z ctxt goal     = Refine "Here" `Seq` Solve
+findElem (S n) ctxt goal = 
+  GoalType "Elem"
+    (Try (Refine "Here" `Seq` Solve)
+         (Refine "There" `Seq` (Solve `Seq` findElem n ctxt goal)))
+
 empty : Obj a => IO a
 empty {a} = mkForeign (FFun ("(function(){return {})") [FUnit] (FAny a)) ()
 
+get : (Obj a) => {t : Ty} -> (name : String) -> 
+      {default tactics {applyTactic findElem 100; solve; } 
+         prf : Elem (name, ReadOnly ty) properties } ->
+      a -> Int
+
+{--
 get : (Obj a, Has Property (name, ReadOnly t) properties) => a -> IO (interpFTy t)
 get {t} {name} obj = mkForeign (FFun ("." ++ name) [FPtr] t) (believe_me obj)
 
@@ -106,29 +117,14 @@ set {t} {name} obj x = mkForeign (FFun ("." ++ name ++ "=") [FPtr, t] FUnit) (be
 
 methType : TwoOrMore FTy -> Type
 methType ts = uncurry ForeignTy (toFFIArgs ts)
-
+--}
 morph : List Type -> Type -> Type
 morph args ret = foldr (\t, ft => t -> ft) ret args
-
--- funCallLoop : (ts : List Type) -> (ts' : List Type) -> (morph 
 
 funCall : (ts : List Type) -> (acc : (List (t : Type ** t))) -> (morph ts (List (t : Type ** t)))
 funCall [] acc = reverse acc
 funCall (t::ts) acc = \x : t => funCall ts ((t ** x) :: acc)
 
-:
-
--- curriedForeign : (name : String) -> (args : List FTy) -> (ret : FTy) -> morph (map interpFTy args) (IO (interpFTy ret))
--- curriedForeign name args ret = (\args -> 
-
--- methCall : (Obj a, Has Property (name, Method ts) properties) => a -> methType ts
--- methCall {a} {ts} {name} =
---   let (args, ret) = toFFIArgs ts in curriedForeign . believe_me $ mkForeign (FFun ("." ++ name) (FAny a :: args) ret)
-
---methCall {ts} {name} obj = mkForeign (FFun ("." ++ name) (FPtr :: args) ret) (believe_me obj) where
---  (args, ret) = toFFIArgs ts
-
--- syntax [o] "#" [p] = get' {name = p} o
 syntax [o] "#" [p] = get {name = p} o
 syntax [o] "#" [p] ":=" [x] = set {name = p} o x
 
