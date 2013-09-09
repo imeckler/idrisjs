@@ -6,6 +6,10 @@ function setGlobal(s, x){
     window[s] = x;
 }
 
+function getGlobal(s){
+  return window[s];
+}
+
 function isUndefined(x){
     return (x === undefined)
 }
@@ -40,10 +44,12 @@ function wrapIdrisUncurried(fid){
     return function(){
         var res = fid;
         var i = 0;
-        var args = Array.prototype.slice.call(arguments);
-        while (res instanceof __IDRRT__Con){
+        var arg;
+        var len = arguments.length;
+        while (res instanceof __IDRRT__Con && i < len){
+            arg = arguments[i];
             res = __IDRRT__tailcall(function(){
-                return __IDR__APPLY0(res, args[i]);
+                return __IDR__APPLY0(res, arg);
             });
             ++i;
         }

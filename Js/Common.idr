@@ -1,14 +1,13 @@
 module Js.Common
 
-import Js.Types
+-- import Js.Types
 
-syntax [s] ".[" [i] "]" = prim__strIndex s i
+-- syntax [s] ".[" [i] "]" = prim__strIndex s i
+{--
 wrap : (a -> b) -> Js (a -> b)
 wrap {a} {b} f = unsafePerformIO (
   mkForeign (FFun "wrapIdrisUncurried" [FAny (a -> b)] (FAny (Js (a -> b)))) f)
-
-wrap' : (a -> b) -> (a -> b)
-wrap' = wrap
+  --}
 
 error : String -> a
 error {a} s = unsafePerformIO (mkForeign (FFun "throwError" [FString] (FAny a)) s)

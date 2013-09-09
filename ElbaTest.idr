@@ -1,14 +1,22 @@
 module Main
 
-import Elba.Param
-import Elba.IO
-import Elba.Array
-import Elba.IORef
-import Elba.Input
+import Js.Unsafe
+import Elba.Signal
+import Elba.Mouse
+import Elba.Keyboard
 
+printAny : a -> IO ()
+printAny {a} x = mkForeign (FFun "console.log" [FAny a] FUnit) x
 
-printRef : IORef String -> JsIO ()
-printRef r = readIORef r >>= printAny
+ups : Signal Int
+ups = scan (+) 0 (map snd arrows)
+
+main : IO ()
+main = do
+  pos <- mousePos
+  sink print pos
+  sink print ups
+
 {--
 main : IO ()
 main = unsafeToIO $ do
@@ -26,7 +34,6 @@ main = unsafeToIO $ do
   push r3 arr
   setGlobal "arr" arr
   mapIO_ printRef arr
-  --}
 
 main : IO ()
 main = unsafeToIO $ do
@@ -39,3 +46,4 @@ main = unsafeToIO $ do
   res <- the (JsIO (List Float)) (sequence (replicate 5 (smp ())))
   printAny res
 
+  --}

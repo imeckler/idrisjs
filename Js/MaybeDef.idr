@@ -21,6 +21,10 @@ map : (a -> b) -> MaybeDef a -> MaybeDef b
 map f = f
 
 public
+pure : a -> MaybeDef a
+pure x = x
+
+public
 (<$>) : MaybeDef (a -> b) -> MaybeDef a -> MaybeDef b
 f <$> x = if isUndefined f || isUndefined x then empty else f x
 
