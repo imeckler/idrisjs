@@ -22,3 +22,4 @@ toBool x = if jsEq x true then True else False
 fromBool : Bool -> JsBool
 fromBool True  = true
 fromBool False = false
+
